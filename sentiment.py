@@ -102,7 +102,7 @@ df['tokens'] = df['tokens'].apply(pad_tokens)
 # Print the first few rows of the DataFrame to verify
 #print(df.head())
 
-#Word2vec Training
+#Word2vec Training - skipgram, hierarchical softmax and vector dimension as 300
 from gensim.models import Word2Vec
 
 # Extract the tokenized reviews as a list of lists
@@ -111,24 +111,72 @@ tokenized_reviews = df['tokens'].tolist()
 # Train the Word2Vec model with skip-gram and hierarchical softmax
 # You can adjust the parameters, including the vector dimension, window size, etc.
 vector_dimension = 300  # Specify the vector dimension
-model = Word2Vec(tokenized_reviews, sg=1, hs=1, vector_size=vector_dimension, window=5, min_count=1, workers=4)
+word2Vec_model = Word2Vec(tokenized_reviews, sg=1, hs=1, vector_size=vector_dimension, window=5, min_count=1, workers=4)
 
 # Save the trained Word2Vec model for later use if needed
-model.save("word2vec_model")
+word2Vec_model.save("word2vec_model")
 
 # Now, you can use the trained Word2Vec model to obtain word vectors
 # For example, to get the vector for a specific word:
-word_vector = model.wv['career']
+word_vector = word2Vec_model.wv['career']
 
 # You can also find similar words to a given word:
-similar_words = model.wv.most_similar('career', topn=5)
+similar_words = word2Vec_model.wv.most_similar('career', topn=5)
 
 # Print the word vector and similar words for demonstration
 #print("Vector for 'example_word':", word_vector)
 #print("Similar words to 'example_word':", similar_words)
 
 
-#LSTM Training
+#LSTM Training For LSTM, a dropout value set to 0.2, with learning rate value set to 0.001, and with average pooling
+from tensorflow import keras
+from keras.models import Sequential
+from keras.layers import Embedding, LSTM, Dropout, Dense, GlobalAveragePooling1D
+from keras.optimizers import Adam
+from keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
 
+# Assuming you have already trained the Word2Vec model and loaded it
+word2Vec_model = Word2Vec.load("word2vec_model")
 
+# Convert tokenized reviews to word embeddings
+word_vectors = []
+for tokens in tokenized_reviews:
+    vectors = [word2Vec_model.wv[word] for word in tokens]
+    word_vectors.append(vectors)
 
+# Pad the sequences to a fixed length
+max_sequence_length = max_length  # Use the maximum length from previous processing
+padded_word_vectors = pad_sequences(word_vectors, maxlen=max_sequence_length, padding='post', dtype='float32')
+
+# Create labels for sentiment (assuming 'positive' is 1 and 'negative' is 0)
+labels = (df['Label'] == 'positive').astype(int)
+
+# Split the data into training and validation sets
+from sklearn.model_selection import train_test_split
+X_train, X_val, y_train, y_val = train_test_split(padded_word_vectors, labels, test_size=0.2, random_state=42)
+
+# Build the LSTM model
+model = Sequential()
+model.add(Embedding(input_dim=len(word2Vec_model.wv.index_to_key), output_dim=vector_dimension, input_length=max_sequence_length, weights=[word2Vec_model.wv.vectors], trainable=False))
+model.add(LSTM(100, return_sequences=True))
+model.add(GlobalAveragePooling1D())
+model.add(Dropout(0.2))  # Add dropout with rate 0.2
+model.add(Dense(1, activation='sigmoid'))
+
+# Compile the model with a custom learning rate
+custom_optimizer = Adam(learning_rate=0.001)  # Set learning rate to 0.001
+model.compile(loss='binary_crossentropy', optimizer=custom_optimizer, metrics=['accuracy'])
+
+# Print a summary of the model architecture
+model.summary()
+
+# Train the model
+epochs = 10  # You can adjust the number of epochs
+batch_size = 64
+history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val))
+
+# Evaluate the model
+loss, accuracy = model.evaluate(X_val, y_val)
+print(f"Validation Loss: {loss:.4f}, Validation Accuracy: {accuracy*100:.2f}%")
