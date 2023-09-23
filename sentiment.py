@@ -6,7 +6,7 @@ from nltk.stem.porter import PorterStemmer
 
 stemmer = PorterStemmer()
 
-main_directory = "/Users/sahibakhan/Desktop/resources/ML/project/aclImdb/train"
+main_directory = ".\\aclImdb\\train"
 pos_rew = os.path.join(main_directory, "pos")
 neg_rew = os.path.join(main_directory, "neg")
 txt_files = [f for f in os.listdir(pos_rew) if f.endswith(".txt")]
@@ -30,7 +30,7 @@ df = pd.DataFrame(data, columns=["Text"])
 df["Label"] = "positive"
 
 # Print the first few rows of the DataFrame to verify
-print(df.head())
+#print(df.head())
 
 for txt_file in txt_files_neg:
     file_path = os.path.join(neg_rew, txt_file)
@@ -47,7 +47,7 @@ df = pd.DataFrame(data, columns=["Text"])
 df["Label"] = "negative"
 
 # Print the first few rows of the DataFrame to verify
-print(df.head())
+#print(df.head())
 
 
 #Tokenisation
@@ -55,7 +55,7 @@ nltk.download('punkt')
 df['tokens'] = df['Text'].apply(nltk.word_tokenize)
 
 # Print the first few rows of the DataFrame to verify
-print(df.head())
+#print(df.head())
 
 #stopwords
 nltk.download('stopwords')
@@ -70,7 +70,7 @@ def remove_stopwords(tokens):
 df['tokens'] = df['tokens'].apply(remove_stopwords)
 
 # Print the first few rows of the DataFrame to verify
-print(df.head())
+#print(df.head())
 
 #df['tokens']=stemmer.stem(df['tokens'])
 #print(df.head())
@@ -80,4 +80,22 @@ def stemming_words(tokens):
     return new_tokens
 
 df['tokens']=df['tokens'].apply(stemming_words)
+#print(df.head())
+
+#add padding to the end of each review
+# Find the maximum length of reviews in the DataFrame
+max_length = df['tokens'].apply(len).max()
+
+# Define the padding token
+padding_token = '<PAD>'
+
+# Define a function to pad tokens in each review
+def pad_tokens(tokens):
+    padded_tokens = tokens + [padding_token] * (max_length - len(tokens))
+    return padded_tokens
+
+# Apply the pad_tokens function to the 'tokens' column
+df['tokens'] = df['tokens'].apply(pad_tokens)
+
+# Print the first few rows of the DataFrame to verify
 print(df.head())
