@@ -23,11 +23,11 @@ for txt_file in txt_files:
     data.append(content)
 
 # Create a DataFrame from the list of text data
-df = pd.DataFrame(data, columns=["Text"])
+df_pos = pd.DataFrame(data, columns=["Text"])
 
 # Process the content of the DataFrame as needed
 # For example, you can add labels or perform further analysis
-df["Label"] = "positive"
+df_pos["Label"] = "positive"
 
 # Print the first few rows of the DataFrame to verify
 #print(df.head())
@@ -40,14 +40,16 @@ for txt_file in txt_files_neg:
     data.append(content)
 
 # Create a DataFrame from the updated list of text data
-df = pd.DataFrame(data, columns=["Text"])
+df_neg = pd.DataFrame(data, columns=["Text"])
 
 # Process the content of the DataFrame as needed
 # For example, you can add labels or perform further analysis
-df["Label"] = "negative"
+df_neg["Label"] = "negative"
 
+# Concatenate the two DataFrames
+df = pd.concat([df_pos, df_neg])
 # Print the first few rows of the DataFrame to verify
-#print(df.head())
+#print('here',df)
 
 
 #Tokenisation
@@ -122,9 +124,11 @@ word_vector = model.wv['career']
 similar_words = model.wv.most_similar('career', topn=5)
 
 # Print the word vector and similar words for demonstration
-print("Vector for 'example_word':", word_vector)
-print("Similar words to 'example_word':", similar_words)
+#print("Vector for 'example_word':", word_vector)
+#print("Similar words to 'example_word':", similar_words)
 
+
+#LSTM Training
 
 
 
