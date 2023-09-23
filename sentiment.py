@@ -98,4 +98,33 @@ def pad_tokens(tokens):
 df['tokens'] = df['tokens'].apply(pad_tokens)
 
 # Print the first few rows of the DataFrame to verify
-print(df.head())
+#print(df.head())
+
+#Word2vec Training
+from gensim.models import Word2Vec
+
+# Extract the tokenized reviews as a list of lists
+tokenized_reviews = df['tokens'].tolist()
+
+# Train the Word2Vec model with skip-gram and hierarchical softmax
+# You can adjust the parameters, including the vector dimension, window size, etc.
+vector_dimension = 300  # Specify the vector dimension
+model = Word2Vec(tokenized_reviews, sg=1, hs=1, vector_size=vector_dimension, window=5, min_count=1, workers=4)
+
+# Save the trained Word2Vec model for later use if needed
+model.save("word2vec_model")
+
+# Now, you can use the trained Word2Vec model to obtain word vectors
+# For example, to get the vector for a specific word:
+word_vector = model.wv['career']
+
+# You can also find similar words to a given word:
+similar_words = model.wv.most_similar('career', topn=5)
+
+# Print the word vector and similar words for demonstration
+print("Vector for 'example_word':", word_vector)
+print("Similar words to 'example_word':", similar_words)
+
+
+
+
