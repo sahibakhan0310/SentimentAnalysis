@@ -1,4 +1,5 @@
 import os
+import unicodedata
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
@@ -17,8 +18,10 @@ data = []
 
 for txt_file in txt_files:
     file_path = os.path.join(pos_rew, txt_file)
-    with open(file_path, "r") as file:
-        content = file.read().casefold()
+    with open(file_path, "r", encoding='utf-8') as file:
+        content = file.read()
+        content = ''.join(c for c in content if unicodedata.category(c) != 'So')
+        content = content.casefold()
     # Append the content to the list
     data.append(content)
 
@@ -34,8 +37,10 @@ df_pos["Label"] = "positive"
 
 for txt_file in txt_files_neg:
     file_path = os.path.join(neg_rew, txt_file)
-    with open(file_path, "r") as file:
-        content = file.read().casefold()
+    with open(file_path, "r",  encoding='utf-8')  as file:
+        content = file.read()
+        content = ''.join(c for c in content if unicodedata.category(c) != 'So')
+        content = content.casefold()
     # Append the content to the list
     data.append(content)
 
@@ -100,7 +105,7 @@ def pad_tokens(tokens):
 df['tokens'] = df['tokens'].apply(pad_tokens)
 
 # Print the first few rows of the DataFrame to verify
-#print(df.head())
+print("padding the tokens: ", df.head())
 
 #Word2vec Training - skipgram, hierarchical softmax and vector dimension as 300
 from gensim.models import Word2Vec
@@ -124,7 +129,7 @@ word_vector = word2Vec_model.wv['career']
 similar_words = word2Vec_model.wv.most_similar('career', topn=5)
 
 # Print the word vector and similar words for demonstration
-#print("Vector for 'example_word':", word_vector)
+print("Vector for 'example_word':", word_vector)
 #print("Similar words to 'example_word':", similar_words)
 
 
