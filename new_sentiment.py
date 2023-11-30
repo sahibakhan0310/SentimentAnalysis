@@ -71,14 +71,25 @@ def convert_to_word_embeddings(df, max_sequence_length):
         vectors = [word2Vec_model[word] for word in tokens if word in word2Vec_model]
         if vectors:
             review_vector = np.mean(vectors, axis=0)
-            if not np.isnan(np.sum(review_vector)):  # Check if the vector is not NaN
-                review_vectors.append(review_vector)
-                label = int(df['Label'].iloc[i] == 'positive')
-                labels.append(label)
+        else:
+            review_vector = np.full(word2Vec_model.vector_size, np.nan)
+        review_vectors.append(review_vector)
+        label = int(df['Label'].iloc[i] == 'positive')
+        labels.append(label)
+
+    
+    # Convert to numpy arrays
+    review_vectors = np.array(review_vectors)
+    labels = np.array(labels)
+
+    # Filter out nan review vectors and their corresponding labels
+    not_nan_mask = ~np.isnan(review_vectors).any(axis=1)
+    review_vectors = review_vectors[not_nan_mask]
+    labels = labels[not_nan_mask]
 
     padded_word_vectors = pad_sequences(review_vectors, maxlen=max_sequence_length, padding='post', dtype='float32')
-    labels = (df['Label'] == 'positive').astype(int)
-
+    print(f"Shape of review_vectors: {len(review_vectors)}")
+    print(f"Shape of labels: {len(labels)}")
     return padded_word_vectors, labels
 
 
@@ -126,7 +137,7 @@ padded_word_vectors, labels = convert_to_word_embeddings(df, max_sequence_length
 X_train, X_val, y_train, y_val = split_data(padded_word_vectors, labels)
 
 input_shape = X_train.shape[1:]
-'''
+
 model = build_lstm_model(input_shape)
 history = train_model(model, X_train, y_train, X_val, y_val)
 '''
@@ -134,7 +145,7 @@ history = train_model(model, X_train, y_train, X_val, y_val)
 from keras.models import load_model
 # Load the saved model
 model = load_model('lstm_model.h5')
-
+'''
 evaluate_model(model, X_val, y_val)
 
 def load_test_data(test_directory):
@@ -164,7 +175,6 @@ def load_test_data(test_directory):
     return df_test
 
 def classify_test_data(model, df_test,  max_sequence_length):
-    df_test = preprocess_data(df_test)
     X_test, y_test = convert_to_word_embeddings(df_test, max_sequence_length)
     X_test = np.expand_dims(X_test, axis=1)  # Add this line
 
