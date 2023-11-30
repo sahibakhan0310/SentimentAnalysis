@@ -14,13 +14,12 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from gensim.models import KeyedVectors
 
 # Download and load pre-trained GloVe embeddings
-glove_file = '/Users/sahibakhan/resources/ML/project/SentimentAnalysis/glove/glove.6B.300d.txt'
+glove_file = './glove.6B.300d.txt'
 word2vec_output_file = 'glove.6B.300d.word2vec'
 glove2word2vec(glove_file, word2vec_output_file)
 word2Vec_model = KeyedVectors.load_word2vec_format(word2vec_output_file, binary=False)
 
-def load_data():
-    main_directory = "/Users/sahibakhan/resources/ML/project/aclImdb/train"
+def load_data(main_directory):
     pos_rew = os.path.join(main_directory, "pos")
     neg_rew = os.path.join(main_directory, "neg")
 
@@ -118,17 +117,23 @@ def evaluate_model(model, X_val, y_val):
 
 
 # Main execution
-df = load_data()
+main_directory = "./aclImdb/train"
+df = load_data(main_directory)
 df = preprocess_data(df)
-max_sequence_length = X_train.shape[1]
-padded_word_vectors, labels = convert_to_word_embeddings(df,max_sequence_length)
+max_sequence_length = df['tokens'].apply(len).max()
+padded_word_vectors, labels = convert_to_word_embeddings(df, max_sequence_length)
 
 X_train, X_val, y_train, y_val = split_data(padded_word_vectors, labels)
 
 input_shape = X_train.shape[1:]
-
+'''
 model = build_lstm_model(input_shape)
 history = train_model(model, X_train, y_train, X_val, y_val)
+'''
+
+from keras.models import load_model
+# Load the saved model
+model = load_model('lstm_model.h5')
 
 evaluate_model(model, X_val, y_val)
 
@@ -137,6 +142,7 @@ def load_test_data(test_directory):
     neg_test_dir = os.path.join(test_directory, "neg")
 
     data = []
+    labels = []
 
     # Load positive reviews
     for txt_file in os.listdir(pos_test_dir):
@@ -144,6 +150,7 @@ def load_test_data(test_directory):
         with open(file_path, "r", encoding='utf-8') as file:
             content = file.read().casefold()
         data.append(content)
+        labels.append(1)  # Positive review
 
     # Load negative reviews
     for txt_file in os.listdir(neg_test_dir):
@@ -151,29 +158,33 @@ def load_test_data(test_directory):
         with open(file_path, "r", encoding='utf-8') as file:
             content = file.read().casefold()
         data.append(content)
+        labels.append(0)  # Negative review
 
-    df_test = pd.DataFrame(data, columns=["Text"])
+    df_test = pd.DataFrame({'Text': data, 'Label': labels})
     return df_test
 
-def classify_test_data(model, df_test, max_sequence_length):
+def classify_test_data(model, df_test,  max_sequence_length):
     df_test = preprocess_data(df_test)
-    test_padded_word_vectors, _ = convert_to_word_embeddings(df_test, max_sequence_length)
-    test_padded_word_vectors = np.expand_dims(test_padded_word_vectors, axis=1)
+    X_test, y_test = convert_to_word_embeddings(df_test, max_sequence_length)
+    X_test = np.expand_dims(X_test, axis=1)  # Add this line
 
-    y_pred = model.predict(test_padded_word_vectors)
+    y_pred = model.predict(X_test)
     y_pred = np.round(y_pred)
 
-    return y_pred
+    return y_test, y_pred
 
-# Assuming your test data is in the directory "/Users/sahibakhan/resources/ML/project/aclImdb/test"
-test_directory = "/Users/sahibakhan/resources/ML/project/aclImdb/test"
-
+# Load and preprocess the test data
+test_directory = "./aclImdb/test"
 df_test = load_test_data(test_directory)
+df_test = preprocess_data(df_test)
 
-# Assuming max_sequence_length is the same as used during training
-max_sequence_length = X_train.shape[1]
+# Convert the test data to word embeddings
+X_test, y_test = convert_to_word_embeddings(df_test, max_sequence_length)
 
 # Classify the test data
-y_pred_test = classify_test_data(model, df_test, max_sequence_length)
+y_test, y_pred_test = classify_test_data(model, df_test,  max_sequence_length)
 
-# Now you can use y_pred_test as the predicted labels for your test data
+print('Test data classification results:#########')
+print(f'Classification Report:\n {classification_report(y_test, y_pred_test)}')
+print(f'Confusion Matrix:\n {confusion_matrix(y_test, y_pred_test)}')
+print(f'Accuracy: {accuracy_score(y_test, y_pred_test)}')

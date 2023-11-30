@@ -1,2 +1,5 @@
 aclImdb/
 glove.6B.300d.txt
+lstm_model.h5
+padded_tokens.csv
+glove.6B.300d.word2vec
